@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RadioVisión · Radiología e Imágenes Diagnósticas</title>
+<style>
+  /* ============ TOKENS DE DISEÑO ============ */
+  :root{
+    --azul-noche: #0A1F33;      /* color principal: fondo tipo sala de lectura radiológica */
+    --panel: #123049;           /* paneles y tarjetas, un tono más claro que el fondo */
+    --cian-scan: #4FD1D9;       /* color secundario: brillo de monitor / rayo de escaneo */
+    --ambar: #3eb305;           /* color de apoyo: acentos cálidos, botones de acción */
+    --texto: #000000;
+    --texto-muted: #93A9BD;
+    --borde: rgba(79, 209, 217, 0.25);
+    --exito: #6FCF97;
+    --error: #244917;
+    --radius: 14px;
+    --fuente: -apple-system, BlinkMacSystemFont, "Segoe UI", open sans, Helvetica, Arial, sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    font-family: var(--fuente);
+    background: var(--azul-noche);
+    color: var(--texto);
+    line-height: 1.55;
+  }
+
+  a{ color: inherit; }
+  img, svg{ max-width:100%; display:block; }
+
+  .contenedor{
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Franja de textura tipo "ruido de sala de escaneo" en el fondo general */
+  body::before{
+    content:"";
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(79,209,217,0.06), transparent 40%),
+      radial-gradient(circle at 85% 75%, rgba(244,162,89,0.05), transparent 45%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  /* ============ ENCABEZADO ============ */
+  header{
+    position: sticky;
+    top:0;
+    z-index: 50;
+    background: rgba(10,31,51,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--borde);
+  }
+
+  .barra-nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding: 16px 0;
+  }
+
+  .marca{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+    font-size: 1.15rem;
+    letter-spacing: 0.2px;
+  }
+
+  .marca .icono-marca{
+    width: 34px; height:34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--cian-scan), #2b8f96);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 1.05rem;
+  }
+
+  nav ul{
+    display:flex;
+    gap: 26px;
+    list-style:none;
+    margin:0; padding:0;
+  }
+  nav a{
+    text-decoration:none;
+    color: var(--texto-muted);
+    font-size: 0.95rem;
+    transition: color .2s ease;
+  }
+  nav a:hover, nav a:focus-visible{ color: var(--cian-scan); }
+
+  .btn-nav-cita{
+    background: var(--ambar);
+    color: #241505;
+    border:none;
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-weight:600;
+    font-size: 0.9rem;
+    cursor:pointer;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-nav-cita:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(244,162,89,0.35); }
+
+  .toggle-menu{ display:none; background:none; border:none; color:var(--texto); font-size:1.5rem; cursor:pointer; }
+
+  /* ============ HERO ============ */
+  .hero{
+    position:relative;
+    z-index:1;
+    padding: 72px 0 64px;
+    display:grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 48px;
+    align-items:center;
+  }
+
+  .hero-texto .etiqueta{
+    color: var(--cian-scan);
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+  }
+
+  .hero-texto h1{
+    font-size: clamp(2rem, 4vw, 2.9rem);
+    line-height: 1.15;
+    margin: 0 0 18px;
+    max-width: 18ch;
+  }
+
+  .hero-texto p{
+    color: var(--texto-muted);
+    max-width: 52ch;
+    margin: 0 0 28px;
+    font-size: 1.05rem;
+  }
+
+  .hero-acciones{ display:flex; gap:14px; flex-wrap:wrap; }
+
+  .btn-primario, .btn-secundario{
+    padding: 13px 24px;
+    border-radius: 999px;
+    font-weight:600;
+    font-size: 0.98rem;
+    cursor:pointer;
+    border: none;
+    text-decoration:none;
+    display:inline-block;
+  }
+  .btn-primario{
+    background: var(--cian-scan);
+    color: #072027;
+  }
+  .btn-primario:hover{ background:#6fe0e6; }
+  .btn-secundario{
+    background: transparent;
+    color: var(--texto);
+    border: 1px solid var(--borde);
+  }
+  .btn-secundario:hover{ border-color: var(--cian-scan); color: var(--cian-scan); }
+
+  /* Panel visor de escaneo: pieza central distintiva del hero */
+  .visor{
+    position:relative;
+    background: #071824;
+    border-radius: 20px;
+    border: 1px solid var(--borde);
+    padding: 22px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.35);
+  }
+
+  .visor-cabecera{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 16px;
+  }
+
+  .visor-titulo{ font-size:0.85rem; color: var(--texto-muted); }
+
+  .selector-modalidad{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+
+  .chip-modalidad{
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--borde);
+    color: var(--texto-muted);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    cursor:pointer;
+    transition: all .15s ease;
+  }
+  .chip-modalidad.activo{
+    background: var(--cian-scan);
+    color:#072027;
+    border-color: var(--cian-scan);
+    font-weight:600;
+  }
+
+  .pantalla{
+    position:relative;
+    height: 280px;
+    border-radius: 14px;
+    background: radial-gradient(circle at 50% 40%, #102b3c, #05131c 75%);
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border: 1px solid rgba(79,209,217,0.15);
+  }
+
+  .icono-organo{
+    font-size: 5rem;
+    filter: drop-shadow(0 0 18px rgba(79,209,217,0.55));
+    transition: transform .3s ease;
+  }
+
+  /* Línea de escaneo animada: único momento de movimiento intencional del hero */
+  .linea-escaneo{
+    position:absolute;
+    left:0; right:0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cian-scan), transparent);
+    animation: escanear 2.6s linear infinite;
+    opacity:0.8;
+  }
+  @keyframes escanear{
+    0%{ top: 6%; }
+    100%{ top: 94%; }
+  }
+
+  .lectura{
+    margin-top: 14px;
+    display:flex;
+    justify-content:space-between;
+    font-size: 0.82rem;
+    color: var(--texto-muted);
+  }
+  .lectura strong{ color: var(--texto); }
+
+  /* ============ SECCIONES GENERALES ============ */
+  section{ position:relative; z-index:1; padding: 64px 0; }
+
+  .encabezado-seccion{ max-width: 60ch; margin-bottom: 36px; }
+  .encabezado-seccion .etiqueta{ color: var(--ambar); font-size:0.9rem; margin-bottom:8px; }
+  .encabezado-seccion h2{ font-size: clamp(1.5rem, 3vw, 2rem); margin: 0 0 10px; }
+  .encabezado-seccion p{ color: var(--texto-muted); margin:0; }
+
+  /* ============ TARJETAS DE MODALIDADES ============ */
+  .rejilla-tarjetas{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+
+  .tarjeta-modalidad{
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--radius);
+    padding: 22px;
+    cursor:pointer;
+    transition: border-color .2s ease, transform .2s ease;
+  }
+  .tarjeta-modalidad:hover{ transform: translateY(-3px); }
+  .tarjeta-modalidad.seleccionada{ border-color: var(--cian-scan); box-shadow: 0 0 0 1px var(--cian-scan) inset; }
+
+  .tarjeta-modalidad .icono{ font-size:2rem; margin-bottom:12px; }
+  .tarjeta-modalidad h3{ margin:0 0 8px; font-size:1.05rem; }
+  .tarjeta-modalidad p{ margin:0 0 14px; color: var(--texto-muted); font-size:0.9rem; }
+
+  .barra-dosis{ height:6px; border-radius:4px; background: rgba(255,255,255,0.08); overflow:hidden; }
+  .barra-dosis span{ display:block; height:100%; background: var(--ambar); }
+
+  .dosis-texto{ font-size:0.78rem; color: var(--texto-muted); margin-top:6px; }
+
+  /* ============ CALCULADORA DE EQUIVALENCIA ============ */
+  .panel-calculadora{
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--radius);
+    padding: 32px;
+    display:grid;
+    grid-template-columns: 1fr auto;
+    gap: 24px;
+    align-items:center;
+  }
+  .panel-calculadora .resultado{
+    font-size: 1.02rem;
+    min-height: 1.6em;
+  }
+  .panel-calculadora .resultado strong{ color: var(--cian-scan); }
+  .panel-calculadora .resultado.aviso strong{ color: var(--exito); }
+
+  .btn-calcular{
+    background: var(--ambar);
+    color:#241505;
+    border:none;
+    padding: 14px 26px;
+    border-radius: 999px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .btn-calcular:hover{ filter: brightness(1.06); }
+
+  /* ============ SERVICIOS ============ */
+  .rejilla-servicios{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .tarjeta-servicio{
+    padding: 24px;
+    border-radius: var(--radius);
+    background: linear-gradient(160deg, rgba(79,209,217,0.08), rgba(255,255,255,0.02));
+    border: 1px solid var(--borde);
+  }
+  .tarjeta-servicio .icono{ font-size:1.7rem; margin-bottom:10px; }
+  .tarjeta-servicio h3{ margin:0 0 8px; font-size:1rem; }
+  .tarjeta-servicio p{ margin:0; color: var(--texto-muted); font-size:0.88rem; }
+
+  /* ============ FORMULARIO ============ */
+  .contenedor-formulario{
+    background: var(--panel);
+    border: 1px solid var(--borde);
+    border-radius: var(--radius);
+    padding: 36px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .campo{ display:flex; flex-direction:column; gap:6px; }
+  .campo.completo{ grid-column: 1 / -1; }
+
+  .campo label{ font-size:0.85rem; color: var(--texto-muted); }
+  .campo input, .campo select, .campo textarea{
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 11px 12px;
+    color: var(--texto);
+    font-family: inherit;
+    font-size: 0.95rem;
+  }
+  .campo input:focus, .campo select:focus, .campo textarea:focus{
+    outline: none;
+    border-color: var(--cian-scan);
+  }
+  .campo textarea{ resize: vertical; min-height: 90px; }
+
+  .mensaje-error{ font-size:0.78rem; color: var(--error); min-height: 1em; }
+
+  .campo.invalido input, .campo.invalido select, .campo.invalido textarea{
+    border-color: var(--error);
+  }
+
+  .acciones-formulario{
+    grid-column: 1 / -1;
+    display:flex;
+    align-items:center;
+    gap: 18px;
+  }
+
+  .btn-enviar{
+    background: var(--cian-scan);
+    color:#072027;
+    border:none;
+    padding: 13px 28px;
+    border-radius: 999px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .btn-enviar:hover{ background:#6fe0e6; }
+
+  .mensaje-envio{ font-size:0.9rem; }
+  .mensaje-envio.exito{ color: var(--exito); }
+  .mensaje-envio.error{ color: var(--error); }
+
+  /* ============ PIE DE PÁGINA ============ */
+  footer{
+    position:relative; z-index:1;
+    border-top: 1px solid var(--borde);
+    padding: 40px 0 28px;
+  }
+  .pie-rejilla{
+    display:grid;
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 32px;
+    margin-bottom: 28px;
+  }
+  .pie-rejilla h4{ margin: 0 0 12px; font-size:0.95rem; }
+  .pie-rejilla p, .pie-rejilla li{ color: var(--texto-muted); font-size:0.88rem; }
+  .pie-rejilla ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+
+  .pie-legal{
+    border-top: 1px solid var(--borde);
+    padding-top: 18px;
+    font-size: 0.78rem;
+    color: var(--texto-muted);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 880px){
+    .hero{ grid-template-columns: 1fr; padding-top: 44px; }
+    .rejilla-tarjetas{ grid-template-columns: repeat(2,1fr); }
+    .rejilla-servicios{ grid-template-columns: repeat(2,1fr); }
+    .contenedor-formulario{ grid-template-columns: 1fr; }
+    .pie-rejilla{ grid-template-columns: 1fr; }
+    .panel-calculadora{ grid-template-columns: 1fr; text-align:center; }
+  }
+
+  @media (max-width: 640px){
+    nav ul{
+      position:absolute; top:100%; left:0; right:0;
+      flex-direction:column;
+      background: var(--azul-noche);
+      border-bottom: 1px solid var(--borde);
+      padding: 16px 24px;
+      display:none;
+      gap: 14px;
+    }
+    nav ul.abierto{ display:flex; }
+    .toggle-menu{ display:block; }
+    .rejilla-tarjetas{ grid-template-columns: 1fr; }
+    .rejilla-servicios{ grid-template-columns: 1fr; }
+  }
+
+  /* Respeto por preferencia de reducción de movimiento */
+  @media (prefers-reduced-motion: reduce){
+    .linea-escaneo{ animation: none; }
+    html{ scroll-behavior:auto; }
+  }
+
+  /* Foco visible para accesibilidad de teclado */
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+    outline: 2px solid var(--cian-scan);
+    outline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ ENCABEZADO ============ -->
+<header>
+  <div class="contenedor barra-nav">
+    <div class="marca">
+      <span class="icono-marca">🩻</span>
+      RadioVisión
+    </div>
+    <button class="toggle-menu" id="toggleMenu" aria-label="Abrir menú" aria-expanded="false">☰</button>
+    <nav>
+      <ul id="menuNav">
+        <li><a href="#modalidades">Modalidades</a></li>
+        <li><a href="#calculadora">Dosis</a></li>
+        <li><a href="#servicios">Servicios</a></li>
+        <li><a href="#cita">Contacto</a></li>
+      </ul>
+    </nav>
+    <button class="btn-nav-cita" onclick="document.getElementById('cita').scrollIntoView()">Agendar cita</button>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="contenedor" style="display:grid; grid-template-columns:1.05fr 0.95fr; gap:48px; align-items:center;">
+    <div class="hero-texto">
+      <div class="etiqueta">Servicio de Radiología e Imágenes Diagnósticas</div>
+      <h1>Ver dentro del cuerpo para decidir con certeza</h1>
+      <p>Rayos X, tomografía, resonancia magnética y ecografía en un mismo centro, con lectura especializada y entrega de resultados en línea. Explora abajo cómo funciona cada estudio y qué esperar de tu dosis de radiación.</p>
+      <div class="hero-acciones">
+        <button class="btn-primario" onclick="document.getElementById('modalidades').scrollIntoView()">Explorar modalidades</button>
+        <a class="btn-secundario" href="#cita">Solicitar una cita</a>
+      </div>
+    </div>
+
+    <!-- Visor interactivo: pieza central del hero -->
+    <div class="visor">
+      <div class="visor-cabecera">
+        <span class="visor-titulo">Visor de estudio · vista previa</span>
+      </div>
+      <div class="selector-modalidad" id="selectorHero">
+        <button class="chip-modalidad activo" data-modalidad="rx">Rayos X</button>
+        <button class="chip-modalidad" data-modalidad="tc">Tomografía</button>
+        <button class="chip-modalidad" data-modalidad="rm">Resonancia</button>
+        <button class="chip-modalidad" data-modalidad="eco">Ecografía</button>
+      </div>
+      <div class="pantalla">
+        <div class="linea-escaneo"></div>
+        <div class="icono-organo" id="iconoOrgano">🦴</div>
+      </div>
+      <div class="lectura">
+        <span id="lecturaNombre">Rayos X de tórax</span>
+        <span id="lecturaDosis">Dosis: <strong>0.1 mSv</strong></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TARJETAS: MODALIDADES ============ -->
+<section id="modalidades">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <div class="etiqueta">Modalidades disponibles</div>
+      <h2>Cuatro formas de mirar dentro del cuerpo</h2>
+      <p>Cada estudio usa un principio físico distinto. Toca una tarjeta para verla reflejada en el visor y en la calculadora de equivalencia de dosis.</p>
+    </div>
+
+    <div class="rejilla-tarjetas" id="rejillaTarjetas">
+      <!-- Las tarjetas se generan también por JavaScript a partir de los mismos datos que el visor -->
+      <article class="tarjeta-modalidad seleccionada" data-modalidad="rx">
+        <div class="icono">🦴</div>
+        <h3>Rayos X</h3>
+        <p>Estudio rápido para huesos y tórax mediante radiación ionizante de baja dosis.</p>
+        <div class="barra-dosis"><span style="width:8%"></span></div>
+        <div class="dosis-texto">Dosis relativa: baja</div>
+      </article>
+
+      <article class="tarjeta-modalidad" data-modalidad="tc">
+        <div class="icono">🧠</div>
+        <h3>Tomografía (TC)</h3>
+        <p>Cortes transversales detallados del cuerpo, útil en trauma y estudios de urgencia.</p>
+        <div class="barra-dosis"><span style="width:70%"></span></div>
+        <div class="dosis-texto">Dosis relativa: media-alta</div>
+      </article>
+
+      <article class="tarjeta-modalidad" data-modalidad="rm">
+        <div class="icono">🧲</div>
+        <h3>Resonancia (RM)</h3>
+        <p>Imágenes de tejidos blandos y sistema nervioso usando campos magnéticos, sin radiación ionizante.</p>
+        <div class="barra-dosis"><span style="width:0%"></span></div>
+        <div class="dosis-texto">Dosis relativa: sin radiación ionizante</div>
+      </article>
+
+      <article class="tarjeta-modalidad" data-modalidad="eco">
+        <div class="icono">👶</div>
+        <h3>Ecografía</h3>
+        <p>Estudio con ultrasonido, ideal para control prenatal y órganos abdominales.</p>
+        <div class="barra-dosis"><span style="width:0%"></span></div>
+        <div class="dosis-texto">Dosis relativa: sin radiación ionizante</div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CALCULADORA DE EQUIVALENCIA ============ -->
+<section id="calculadora">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <div class="etiqueta">Herramienta educativa</div>
+      <h2>¿Qué tan grande es la dosis, en la práctica?</h2>
+      <p>Compara la dosis del estudio seleccionado con la radiación natural de fondo que todos recibimos del ambiente cada día.</p>
+    </div>
+
+    <div class="panel-calculadora">
+      <div class="resultado" id="resultadoCalculo">
+        Estudio seleccionado: <strong id="calcNombre">Rayos X de tórax</strong>. Presiona el botón para calcular su equivalencia en radiación ambiental.
+      </div>
+      <button class="btn-calcular" id="btnCalcular">Calcular equivalencia</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SERVICIOS ============ -->
+<section id="servicios">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <div class="etiqueta">Funcionalidades del centro</div>
+      <h2>Todo el proceso, de la orden al informe</h2>
+      <p>Un flujo pensado para pacientes y para el equipo médico que remite los estudios.</p>
+    </div>
+
+    <div class="rejilla-servicios">
+      <div class="tarjeta-servicio">
+        <div class="icono">📅</div>
+        <h3>Agenda de citas</h3>
+        <p>Reserva el estudio, la sede y el horario disponible en minutos.</p>
+      </div>
+      <div class="tarjeta-servicio">
+        <div class="icono">💻</div>
+        <h3>Telerradiología</h3>
+        <p>Segunda lectura de imágenes complejas por especialistas remotos.</p>
+      </div>
+      <div class="tarjeta-servicio">
+        <div class="icono">📄</div>
+        <h3>Informe estructurado</h3>
+        <p>Resultados entregados en formato claro, con hallazgos y recomendación.</p>
+      </div>
+      <div class="tarjeta-servicio">
+        <div class="icono">🚨</div>
+        <h3>Atención de urgencias</h3>
+        <p>Estudios prioritarios disponibles las 24 horas para casos críticos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FORMULARIO SIMULADO ============ -->
+<section id="cita">
+  <div class="contenedor">
+    <div class="encabezado-seccion">
+      <div class="etiqueta">Solicitud de estudio</div>
+      <h2>Agenda tu cita</h2>
+      <p>Este formulario es una simulación con fines educativos: valida los datos en el navegador y no envía información a ningún servidor.</p>
+    </div>
+
+    <form class="contenedor-formulario" id="formularioCita" novalidate>
+      <div class="campo" id="campoNombre">
+        <label for="nombre">Nombre completo</label>
+        <input type="text" id="nombre" name="nombre" placeholder="Ej. Laura Gómez">
+        <span class="mensaje-error"></span>
+      </div>
+
+      <div class="campo" id="campoDocumento">
+        <label for="documento">Número de documento</label>
+        <input type="text" id="documento" name="documento" placeholder="Ej. 1093456789">
+        <span class="mensaje-error"></span>
+      </div>
+
+      <div class="campo" id="campoTelefono">
+        <label for="telefono">Teléfono de contacto</label>
+        <input type="tel" id="telefono" name="telefono" placeholder="Ej. 3001234567">
+        <span class="mensaje-error"></span>
+      </div>
+
+      <div class="campo" id="campoModalidad">
+        <label for="modalidadCita">Estudio requerido</label>
+        <select id="modalidadCita" name="modalidadCita">
+          <option value="">Selecciona un estudio</option>
+          <option value="rx">Rayos X</option>
+          <option value="tc">Tomografía</option>
+          <option value="rm">Resonancia magnética</option>
+          <option value="eco">Ecografía</option>
+        </select>
+        <span class="mensaje-error"></span>
+      </div>
+
+      <div class="campo completo" id="campoMotivo">
+        <label for="motivo">Motivo o síntomas</label>
+        <textarea id="motivo" name="motivo" placeholder="Describe brevemente el motivo del estudio"></textarea>
+        <span class="mensaje-error"></span>
+      </div>
+
+      <div class="acciones-formulario">
+        <button type="submit" class="btn-enviar">Enviar solicitud</button>
+        <span class="mensaje-envio" id="mensajeEnvio"></span>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ============ PIE DE PÁGINA ============ -->
+<footer>
+  <div class="contenedor">
+    <div class="pie-rejilla">
+      <div>
+        <h4>RadioVisión</h4>
+        <p>Centro de radiología e imágenes diagnósticas dedicado a estudios de calidad e informes oportunos para pacientes y médicos remitentes.</p>
+      </div>
+      <div>
+        <h4>Horario de atención</h4>
+        <ul>
+          <li>Lunes a viernes: 6:00 a.m. – 8:00 p.m.</li>
+          <li>Sábados: 7:00 a.m. – 2:00 p.m.</li>
+          <li>Urgencias: 24 horas</li>
+        </ul>
+      </div>
+      <div>
+        <h4>Contacto</h4>
+        <ul>
+          <li>contacto@radiovision.example</li>
+          <li>(601) 555 0199</li>
+          <li>Ibagué, Tolima, Colombia</li>
+        </ul>
+      </div>
+    </div>
+    <div class="pie-legal">
+      <span>© 2026 RadioVisión. Sitio educativo con fines demostrativos.</span>
+      <span>Proyecto académico de Análisis y Desarrollo de Software.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  /* ==========================================================
+     DATOS BASE DE CADA MODALIDAD
+     Se usan tanto para el visor del hero como para las tarjetas
+     y la calculadora, así se evita duplicar información.
+     Dosis en mSv (milisievert) y valores de referencia con
+     fines educativos, no clínicos.
+  ========================================================== */
+  const modalidades = {
+    rx:  { nombre: "Rayos X de tórax",     icono: "🦴", dosis: 0.1,  radiacionIonizante: true  },
+    tc:  { nombre: "Tomografía de tórax",  icono: "🧠", dosis: 7,    radiacionIonizante: true  },
+    rm:  { nombre: "Resonancia magnética", icono: "🧲", dosis: 0,    radiacionIonizante: false },
+    eco: { nombre: "Ecografía abdominal",  icono: "👶", dosis: 0,    radiacionIonizante: false }
+  };
+
+  // Dosis diaria aproximada de radiación natural de fondo (referencia divulgativa: ~3 mSv/año)
+  const DOSIS_DIARIA_FONDO = 3 / 365;
+
+  let modalidadActual = "rx";
+
+  /* ---------- Actualiza visor, tarjetas y calculadora ---------- */
+  function actualizarModalidad(clave){
+    modalidadActual = clave;
+    const datos = modalidades[clave];
+
+    // Visor del hero
+    document.getElementById("iconoOrgano").textContent = datos.icono;
+    document.getElementById("lecturaNombre").textContent = datos.nombre;
+    document.getElementById("lecturaDosis").innerHTML =
+      "Dosis: <strong>" + (datos.dosis === 0 ? "sin radiación ionizante" : datos.dosis + " mSv") + "</strong>";
+
+    // Chips del selector en el hero
+    document.querySelectorAll(".chip-modalidad").forEach(chip => {
+      chip.classList.toggle("activo", chip.dataset.modalidad === clave);
+    });
+
+    // Tarjetas de modalidades
+    document.querySelectorAll(".tarjeta-modalidad").forEach(tarjeta => {
+      tarjeta.classList.toggle("seleccionada", tarjeta.dataset.modalidad === clave);
+    });
+
+    // Panel de la calculadora: se reinicia el resultado al cambiar de estudio
+    document.getElementById("calcNombre").textContent = datos.nombre;
+    const resultado = document.getElementById("resultadoCalculo");
+    resultado.classList.remove("aviso");
+    resultado.innerHTML =
+      "Estudio seleccionado: <strong>" + datos.nombre + "</strong>. Presiona el botón para calcular su equivalencia en radiación ambiental.";
+  }
+
+  // Escucha clics en los chips del visor
+  document.getElementById("selectorHero").addEventListener("click", (evento) => {
+    const boton = evento.target.closest(".chip-modalidad");
+    if (boton) actualizarModalidad(boton.dataset.modalidad);
+  });
+
+  // Escucha clics en las tarjetas informativas (mismo comportamiento que los chips)
+  document.getElementById("rejillaTarjetas").addEventListener("click", (evento) => {
+    const tarjeta = evento.target.closest(".tarjeta-modalidad");
+    if (tarjeta) actualizarModalidad(tarjeta.dataset.modalidad);
+  });
+
+  /* ---------- Calculadora de equivalencia de dosis ---------- */
+  document.getElementById("btnCalcular").addEventListener("click", () => {
+    const datos = modalidades[modalidadActual];
+    const resultado = document.getElementById("resultadoCalculo");
+
+    if (!datos.radiacionIonizante){
+      resultado.classList.add("aviso");
+      resultado.innerHTML =
+        "<strong>" + datos.nombre + "</strong> no utiliza radiación ionizante, por lo que no existe una equivalencia en días de radiación de fondo.";
+      return;
+    }
+
+    const dias = Math.round(datos.dosis / DOSIS_DIARIA_FONDO);
+    resultado.classList.remove("aviso");
+    resultado.innerHTML =
+      "Una <strong>" + datos.nombre + "</strong> (" + datos.dosis + " mSv) equivale aproximadamente a <strong>" + dias +
+      " días</strong> de radiación natural de fondo (referencia educativa: ~3 mSv/año).";
+  });
+
+  /* ---------- Menú responsive ---------- */
+  const toggleMenu = document.getElementById("toggleMenu");
+  const menuNav = document.getElementById("menuNav");
+  toggleMenu.addEventListener("click", () => {
+    const abierto = menuNav.classList.toggle("abierto");
+    toggleMenu.setAttribute("aria-expanded", abierto);
+  });
+  // Cierra el menú al elegir una opción (en móvil)
+  menuNav.querySelectorAll("a").forEach(enlace => {
+    enlace.addEventListener("click", () => {
+      menuNav.classList.remove("abierto");
+      toggleMenu.setAttribute("aria-expanded", "false");
+    });
+  });
+
+  /* ==========================================================
+     VALIDACIÓN DEL FORMULARIO SIMULADO DE CITAS
+  ========================================================== */
+  const formulario = document.getElementById("formularioCita");
+  const mensajeEnvio = document.getElementById("mensajeEnvio");
+
+  // Reglas de validación por campo: cada función devuelve un mensaje de error o cadena vacía si es válido
+  const reglas = {
+    nombre: (valor) => valor.trim().length < 3 ? "Escribe al menos 3 caracteres." : "",
+    documento: (valor) => !/^\d{6,12}$/.test(valor.trim()) ? "Ingresa solo números (6 a 12 dígitos)." : "",
+    telefono: (valor) => !/^\d{7,10}$/.test(valor.trim()) ? "Ingresa un teléfono válido (7 a 10 dígitos)." : "",
+    modalidadCita: (valor) => valor === "" ? "Selecciona un estudio." : "",
+    motivo: (valor) => valor.trim().length < 5 ? "Describe brevemente el motivo (mínimo 5 caracteres)." : ""
+  };
+
+  function validarCampo(idCampo, nombreEntrada){
+    const contenedorCampo = document.getElementById(idCampo);
+    const entrada = document.getElementById(nombreEntrada);
+    const mensaje = contenedorCampo.querySelector(".mensaje-error");
+    const error = reglas[nombreEntrada](entrada.value);
+
+    contenedorCampo.classList.toggle("invalido", Boolean(error));
+    mensaje.textContent = error;
+    return error === "";
+  }
+
+  formulario.addEventListener("submit", (evento) => {
+    evento.preventDefault(); // Evita el envío real: es un formulario de simulación
+
+    const campos = [
+      ["campoNombre", "nombre"],
+      ["campoDocumento", "documento"],
+      ["campoTelefono", "telefono"],
+      ["campoModalidad", "modalidadCita"],
+      ["campoMotivo", "motivo"]
+    ];
+
+    // Se valida cada campo y se guarda si todos son válidos
+    const todosValidos = campos
+      .map(([idCampo, nombreEntrada]) => validarCampo(idCampo, nombreEntrada))
+      .every(Boolean);
+
+    if (todosValidos){
+      const nombrePaciente = document.getElementById("nombre").value.trim();
+      mensajeEnvio.textContent = "Solicitud recibida. Te contactaremos pronto, " + nombrePaciente + ".";
+      mensajeEnvio.className = "mensaje-envio exito";
+      formulario.reset();
+      document.querySelectorAll(".campo").forEach(c => c.classList.remove("invalido"));
+    } else {
+      mensajeEnvio.textContent = "Revisa los campos marcados en rojo.";
+      mensajeEnvio.className = "mensaje-envio error";
+    }
+  });
+
+  // Validación en tiempo real al salir de cada campo (blur)
+  formulario.querySelectorAll("input, select, textarea").forEach((entrada) => {
+    entrada.addEventListener("blur", () => {
+      const contenedor = entrada.closest(".campo");
+      if (contenedor && reglas[entrada.id]) validarCampo(contenedor.id, entrada.id);
+    });
+  });
+</script>
+
+</body>
+</html>
